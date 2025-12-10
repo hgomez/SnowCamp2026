@@ -10,13 +10,16 @@ typedef volatile uint32_t REG32;
 // Receivers have cache so emit long enough, the Cache GATT (Generic Attribute Profile Cache)
 // 15s on iOS 15s, 30s on Android/Windows/Linux
 //
-const unsigned long advertising_topic_duration_ms = 35000L;
+const unsigned long ADVERTISING_TOPIC_DURATION_MS = 35000L;
 
 // Emit mode in fast mode
-const uint16_t advertising_duraton_fastmode = 3;
+const uint16_t ADVERTISING_DURATION_FASTMODE = 3;
 
+// Restart Scanner regularly
+const unsigned long SCAN_RESTART_INTERVAL_MS = 5000L; // 5 secondes
 
-boolean advertising_stopped = false;
+// Last Scan Restart time
+unsigned long last_scan_restart_time = 0;
 
 //
 // In BLE, only 30 bytes are allowed in headers and BlueFruit allow only 14 characters in name
@@ -61,6 +64,25 @@ char * build_advising_name(const char * lesujet) {
   sprintf(&ble_name[0],"M&G%04lX%-7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
   return &ble_name[0];
 }
+
+/*
+*/
+void addr_to_str(const ble_gap_addr_t& addr, char* str) {
+  sprintf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
+          addr.addr[5], addr.addr[4], addr.addr[3], 
+          addr.addr[2], addr.addr[1], addr.addr[0]);
+}
+
+
+void print_adv_data(const uint8_t* data, uint8_t len) {
+    Serial.print("Data: ");
+    for (int i = 0; i < len; i++) {
+        // Afficher chaque octet en hexadécimal (sur deux chiffres)
+        Serial.printf("%02X ", data[i]);
+    }
+    Serial.println();
+}
+
 
 /***
  * Move to next topic, increment topics_index variables and wrap around
@@ -114,19 +136,9 @@ void start_advertising(void)
   Bluefruit.Advertising.restartOnDisconnect(true);
   // Bluefruit.Advertising.setInterval(32, 244);                        // in units of 0.625 ms
   Bluefruit.Advertising.setInterval(32, 32);                            // in units of 0.625 ms => 20ms fast mode
-  Bluefruit.Advertising.setFastTimeout(advertising_duraton_fastmode);   // number of seconds in fast mode
+  Bluefruit.Advertising.setFastTimeout(ADVERTISING_DURATION_FASTMODE);   // number of seconds in fast mode
   Bluefruit.Advertising.start(0);                                       // Advertise forever 
-  advertising_stopped = false;
 }
-
-/*
-*/
-void addr_to_str(const ble_gap_addr_t& addr, char* str) {
-  sprintf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
-          addr.addr[5], addr.addr[4], addr.addr[3], 
-          addr.addr[2], addr.addr[1], addr.addr[0]);
-}
-
 
 /*
  Scan Callback
@@ -148,6 +160,9 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
                   direct_addr_str, 
                   adv_report->rssi, 
                   adv_report->type);
+
+  // In peu de debug
+  print_adv_data(adv_report->data.p_data, adv_report->data.len);
 
   char name_buffer[32] = { 0 };
   
@@ -183,6 +198,8 @@ void start_scanner() {
   Bluefruit.Scanner.setRxCallback(scan_callback); // Lier la fonction de gestion des résultats
   Bluefruit.Scanner.setInterval(scan_interval, scan_window);
   Bluefruit.Scanner.useActiveScan(true); // Demander des SCAN_RSP (non requis pour votre cas, mais bonne pratique)
+  Bluefruit.Scanner.restartOnDisconnect(true);
+
   // reportEvents is not available in 0.10.2
   // Bluefruit.Scanner.reportEvents(true);
 
@@ -265,12 +282,16 @@ void loop() {
   digitalWrite(LED_BUILTIN,(cnt&1)?HIGH:LOW);
   cnt = ( cnt + 1 ) % 6;
   delay(500);
-  Serial.print(".");
+
+  if (Bluefruit.Scanner.isRunning())
+    Serial.print("+");
+  else
+    Serial.print("_");
 
   unsigned long current_time = millis();
   
   // Vérifie si l'intervalle de temps est écoulé
-  if (current_time > (last_update_time + advertising_topic_duration_ms)) {
+  if (current_time > (last_update_time + ADVERTISING_TOPIC_DURATION_MS)) {
     
     Serial.printf("\n\nBluetooth adress %s\n", blue_addr_str);
 
@@ -296,4 +317,18 @@ void loop() {
     // New time
     last_update_time = current_time;
   }
+
+  if (current_time >= (last_scan_restart_time + SCAN_RESTART_INTERVAL_MS)) {
+        
+        Serial.println("\n[Scan Restart] Nettoyage du cache.");
+        
+        // Mettre à jour le temps de redémarrage
+        last_scan_restart_time += SCAN_RESTART_INTERVAL_MS;
+
+        // Arrêter et redémarrer le scanner pour vider son cache interne
+        if (Bluefruit.Scanner.isRunning()) {
+            Bluefruit.Scanner.stop();
+            Bluefruit.Scanner.start(0);
+        }
+    }  
 }
