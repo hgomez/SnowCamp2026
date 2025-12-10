@@ -1,58 +1,86 @@
 #include <Arduino.h>
 #include <bluefruit.h>
 
-// Diffusion d'un sujet, pendant 10s
-#define TEMPS_DIFFUSION_SUJET   10
-
-// Diffusion d'un sujet mode rapide, pendant 3s
-#define TEMPS_DIFFUSION_SUJET_FASTMODE 3
-
 typedef volatile uint32_t REG32;
+
 #define pREG32 (REG32 *)
 #define MAC_ADDRESS_LOW   (*(pREG32 (0x100000a4)))
+
+// Advertising topic duration in milliseconds
+// Receivers have cache so emit long enough, the Cache GATT (Generic Attribute Profile Cache)
+// 15s on iOS 15s, 30s on Android/Windows/Linux
+//
+const unsigned long advertising_topic_duration_ms = 35000L;
+
+// Emit mode in fast mode
+const uint16_t advertising_duraton_fastmode = 3;
+
 
 boolean advertising_stopped = false;
 
 //
-// Le format de nom de diffusion
-// les 3 premiers caractères sont M&G, l'entête
-// Les 4 suivants les 4 suivants, les 32 bits bas de l'adresse mac de la carte 
-// Le suivant, + (si on aime), - (si on n'aime pas)
-// Les 6 suivants, le sujet, Java/K8S/Node/Intel....
+// In BLE, only 30 bytes are allowed in headers and BlueFruit allow only 14 characters in name
+// 
+// We define this format on name so :
+// First 3 chars are M&G, our device header
+// Next 4 chars and lower 16 bits of card mac address
+// Next char, is + (like) or - (don't like)
+// Remaining 6 chars are topic name, say Java/K8S/Node/Intel....
 //
-// Exemples
+
 // 01234567890123
+//
 // M&G1234+Java 
 // M&G1234-Node 
 // M&G1234+6502 
 // M&G1234-Z80 
+// M&G1234-K8S 
+// M&G1234+DEVOPS 
 
-// On définit une zone de 15 caractères 
-// 14 caractères, limite de diffusion de nom et un caractère de fin de ligne, 0x00
+// ble_name is a char array to hold Bluetooth name 
+// 14 chars and a trailing 0x00
 char ble_name[15];
 
-char *sujets[] = { "+JAVA ", "+6502" , "-Node ", "-Z80", "-K8S" };
+// My very own topics
+const char *topics[] = { "+JAVA ", "+6502" , "-Node ", "-Z80", "-K8S", "+DEVOPS" };
 
-unsigned int index_sujets = 0;
+// Our topic index
+unsigned int topics_index = 0;
 
-char * construit_advising(char * lesujet) {
-  sprintf(&ble_name[0],"M&G%04lX%.7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
+// Last time advising started
+unsigned long last_update_time = 0;
+
+// Bluetooth address
+ble_gap_addr_t blue_addr;
+
+// Bluetooth address as string
+char blue_addr_str[18]; 
+
+
+char * build_advising_name(const char * lesujet) {
+  sprintf(&ble_name[0],"M&G%04lX%-7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
   return &ble_name[0];
 }
 
-char * sujet_suivant() {
+/***
+ * Move to next topic, increment topics_index variables and wrap around
+ */
+void next_topic() {
+  
+  // Compute array size
+  const unsigned int NB_TOPICS = sizeof(topics) / sizeof(topics[0]);
+  
+  Serial.printf("current topic #%d\n", topics_index);
 
-  Serial.printf("sujet #%d\n", index_sujets);
+  // Increment topic index
+  topics_index++; 
+  
+  // If topic index is too large, back to 0
+  if (topics_index >= NB_TOPICS) { 
+    topics_index = 0;
+  }
 
-  if (index_sujets >= (sizeof(sujets) / sizeof(sujets[0]))) 
-    index_sujets = 0;
-
-  // On est dans les sujets aimés ?
-  if (index_sujets < (sizeof(sujets) / sizeof(sujets[0])))
-    return (sujets[index_sujets++]);
-
-  // Impossible d'être là 
-  return ((char *) "");
+  Serial.printf("next topic #%d\n", topics_index);
 }
 
 
@@ -61,14 +89,10 @@ char * sujet_suivant() {
  */
 void adv_stop_callback(void)
 {
-  if (advertising_stopped == false) {
-    Serial.printf("Fin de diffusion du sujet, prochain sujet #%d\n", index_sujets);
-    advertising_stopped = true;
-    Bluefruit.Advertising.stop();
-  }
+  Serial.printf("Unexpected end of advertising. next topic #%d\n", topics_index);
 }
 
-void diffusion_bluetooth(void)
+void start_advertising(void)
 {   
   // Advertising packet
   Bluefruit.Advertising.clearData();
@@ -88,10 +112,71 @@ void diffusion_bluetooth(void)
    */
   Bluefruit.Advertising.setStopCallback(adv_stop_callback);
   Bluefruit.Advertising.restartOnDisconnect(true);
-  Bluefruit.Advertising.setInterval(32, 244);                             // in units of 0.625 ms
-  Bluefruit.Advertising.setFastTimeout(TEMPS_DIFFUSION_SUJET_FASTMODE);   // number of seconds in fast mode
-  Bluefruit.Advertising.start(TEMPS_DIFFUSION_SUJET);                     // Stop advertising entirely after TEMPS_DIFFUSION_SUJET seconds 
+  // Bluefruit.Advertising.setInterval(32, 244);                        // in units of 0.625 ms
+  Bluefruit.Advertising.setInterval(32, 32);                            // in units of 0.625 ms => 20ms fast mode
+  Bluefruit.Advertising.setFastTimeout(advertising_duraton_fastmode);   // number of seconds in fast mode
+  Bluefruit.Advertising.start(0);                                       // Advertise forever 
   advertising_stopped = false;
+}
+
+/*
+*/
+void addr_to_str(const ble_gap_addr_t& addr, char* str) {
+  sprintf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
+          addr.addr[5], addr.addr[4], addr.addr[3], 
+          addr.addr[2], addr.addr[1], addr.addr[0]);
+}
+
+
+/*
+ Scan Callback
+*/
+void scan_callback(ble_gap_evt_adv_report_t* adv_report)
+{
+
+  Serial.println("Scan Callback");
+
+  // La vérification checkReportForData est supprimée
+
+  char name_buffer[32] = { 0 };
+  
+  adv_report->data.p_data
+  // Tenter de récupérer le nom complet
+  // Note: Cast explicite de char* vers uint8_t*
+  if (Bluefruit.Scanner.parseReportByType(
+        adv_report, 
+        BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, 
+        (uint8_t*)name_buffer, // Correction de type ici
+        sizeof(name_buffer))
+     )
+  {
+    // Filtrer uniquement les périphériques M&G (votre protocole)
+    if (strncmp(name_buffer, "M&G", 3) == 0)
+    {
+      char addr_str[18] = { 0 };
+      // Adress to String
+      addr_to_str(adv_report->peer_addr, addr_str);      
+      Serial.printf(">> NRF Detected! Addr: %s, Topic: %s\n", addr_str, name_buffer);
+    }
+  }
+}
+
+/*
+ * Scan Part
+ * 
+ */
+void start_scanner() {
+
+  uint16_t scan_interval = 160; // 160 * 0.625 ms = 100 ms
+  uint16_t scan_window   = 80;  // 80 * 0.625 ms = 50 ms
+
+  Bluefruit.Scanner.setRxCallback(scan_callback); // Lier la fonction de gestion des résultats
+  Bluefruit.Scanner.setInterval(scan_interval, scan_window);
+  Bluefruit.Scanner.useActiveScan(true); // Demander des SCAN_RSP (non requis pour votre cas, mais bonne pratique)
+  // Bluefruit.Scanner.reportEvents(true);
+
+  // Démarrer le scan une fois pour qu'il s'exécute en continu
+  Bluefruit.Scanner.start(0); // 0 = Scan en continu (non-bloquant)  
 }
 
 
@@ -108,23 +193,45 @@ void setup() {
   // Init serial communication for debugging
   Serial.begin(115200);
   long start = millis();
+
+  // Wait up to 2s Serial to be ready
   while ( !Serial && (millis() - start < 2000)) delay(10); 
 
-  // start bluetooth
+  // Init Bluefruit
   Bluefruit.begin();
+  
+  blue_addr = Bluefruit.getAddr();
+  // 17 chars (XX:XX:XX:XX:XX:XX) + 1 for \0
+  
+  sprintf(blue_addr_str, "%02X:%02X:%02X:%02X:%02X:%02X",
+          blue_addr.addr[5], blue_addr.addr[4], blue_addr.addr[3], 
+          blue_addr.addr[2], blue_addr.addr[1], blue_addr.addr[0]);
+
+
+  Serial.printf("Bluetooth adress %s\n", blue_addr_str);
+
+  // Set Emission Power to be received
   Bluefruit.setTxPower(4);
 
-  char * sujet_a_diffuser = sujet_suivant();
-  Serial.printf("Diffusion du premier sujet %s\n", sujet_a_diffuser);
+  // Build Advising name
+  build_advising_name(topics[topics_index]);
+
+  // Get topic and advising name
+  Serial.printf("Topic '%s' and Bluetooth Advising '%s'\n", topics[topics_index], ble_name);
 
   // Set name
-  Bluefruit.setName(construit_advising(sujet_a_diffuser));
-  diffusion_bluetooth();
+  Bluefruit.setName(ble_name);
+
+  // Start advertising in Bluetooth
+  start_advertising();
+
+  // Start scanner too
+  start_scanner();
 }
 
 
 void loop() {
-  char * sujet_a_diffuser;
+
   static int cnt = 0;
 
   digitalWrite(D3,LOW);
@@ -147,15 +254,35 @@ void loop() {
   digitalWrite(LED_BUILTIN,(cnt&1)?HIGH:LOW);
   cnt = ( cnt + 1 ) % 6;
   delay(500);
-  Serial.printf("cnt %d\n", cnt);
+  Serial.print(".");
 
-  if (advertising_stopped == true) {
-    advertising_stopped = false;
-    // On diffuse le nom suivant
-    sujet_a_diffuser = sujet_suivant();
-    Bluefruit.setName(construit_advising(sujet_a_diffuser));
-    Serial.printf("Diffusion du sujet %s\n", sujet_a_diffuser);
-    diffusion_bluetooth();
+  unsigned long current_time = millis();
+  
+  // Vérifie si l'intervalle de temps est écoulé
+  if (current_time > (last_update_time + advertising_topic_duration_ms)) {
+    
+    Serial.printf("\n\nBluetooth adress %s\n", blue_addr_str);
+
+    // Find next topic
+    next_topic();
+
+    // Build advertising name
+    build_advising_name(topics[topics_index]);
+
+    // Get topic and advertising name
+    Serial.printf("Topic '%s' and Bluetooth Advising '%s'\n", topics[topics_index], ble_name);
+
+    // Stop advertising
+    Bluefruit.Advertising.stop();
+
+    // Set name
+    Bluefruit.setName(ble_name);
+
+    // Start advertising
+    // Bluefruit.Advertising.start();
+    start_advertising();
+
+    // New time
+    last_update_time = current_time;
   }
-
 }
