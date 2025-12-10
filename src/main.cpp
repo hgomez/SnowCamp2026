@@ -141,7 +141,10 @@ void start_advertising(void)
 }
 
 /*
- Scan Callback
+ * Scan Callback
+ *
+ * A priori pas réentrant, il faut donc reset régulièrement (c'est balo)
+ * 
 */
 void scan_callback(ble_gap_evt_adv_report_t* adv_report)
 {
