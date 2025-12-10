@@ -136,11 +136,21 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
 
   Serial.println("Scan Callback");
 
-  // La vérification checkReportForData est supprimée
+  char peer_addr_str[18] = { 0 };
+  addr_to_str(adv_report->peer_addr, peer_addr_str);
+
+  char direct_addr_str[18] = { 0 };
+  addr_to_str(adv_report->direct_addr, direct_addr_str);
+  
+  Serial.printf("\n--- Report Received ---\n");
+  Serial.printf("Peer Addr: %s | Direct Addr: %s | RSSI: %d dBm | Type: 0x%02X\n", 
+                  peer_addr_str, 
+                  direct_addr_str, 
+                  adv_report->rssi, 
+                  adv_report->type);
 
   char name_buffer[32] = { 0 };
   
-  adv_report->data.p_data
   // Tenter de récupérer le nom complet
   // Note: Cast explicite de char* vers uint8_t*
   if (Bluefruit.Scanner.parseReportByType(
@@ -173,6 +183,7 @@ void start_scanner() {
   Bluefruit.Scanner.setRxCallback(scan_callback); // Lier la fonction de gestion des résultats
   Bluefruit.Scanner.setInterval(scan_interval, scan_window);
   Bluefruit.Scanner.useActiveScan(true); // Demander des SCAN_RSP (non requis pour votre cas, mais bonne pratique)
+  // reportEvents is not available in 0.10.2
   // Bluefruit.Scanner.reportEvents(true);
 
   // Démarrer le scan une fois pour qu'il s'exécute en continu
