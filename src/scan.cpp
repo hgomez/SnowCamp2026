@@ -2,23 +2,6 @@
 
 #include "mg.h"
 
-/*
-*/
-void addr_to_str(const ble_gap_addr_t& addr, char* str) {
-  sprintf(str, "%02X:%02X:%02X:%02X:%02X:%02X",
-          addr.addr[5], addr.addr[4], addr.addr[3], 
-          addr.addr[2], addr.addr[1], addr.addr[0]);
-}
-
-
-void print_adv_data(const uint8_t* data, uint8_t len) {
-    Serial.print("Data: ");
-    for (int i = 0; i < len; i++) {
-        // Afficher chaque octet en hexadécimal (sur deux chiffres)
-        Serial.printf("%02X ", data[i]);
-    }
-    Serial.println();
-}
 
 /*
  * Scan Callback
@@ -28,11 +11,14 @@ void print_adv_data(const uint8_t* data, uint8_t len) {
 */
 void scan_callback(ble_gap_evt_adv_report_t* adv_report)
 {
-
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
   Serial.println("Scan Callback");
+#endif
 
   char peer_addr_str[18] = { 0 };
   addr_to_str(adv_report->peer_addr, peer_addr_str);
+
+  #if LOG_LEVEL >= LOG_LEVEL_TRACE
 
   char direct_addr_str[18] = { 0 };
   addr_to_str(adv_report->direct_addr, direct_addr_str);
@@ -47,6 +33,8 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
   // In peu de debug
   print_adv_data(adv_report->data.p_data, adv_report->data.len);
 
+#endif
+
   char name_buffer[32] = { 0 };
   
   // Tenter de récupérer le nom complet
@@ -54,17 +42,24 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
   if (Bluefruit.Scanner.parseReportByType(
         adv_report, 
         BLE_GAP_AD_TYPE_COMPLETE_LOCAL_NAME, 
-        (uint8_t*)name_buffer, // Correction de type ici
+        (uint8_t*)name_buffer,
         sizeof(name_buffer))
      )
   {
-    // Filtrer uniquement les périphériques M&G (votre protocole)
+    // Filtrer uniquement les périphériques M&G (notre protocole)
     if (strncmp(name_buffer, "M&G", 3) == 0)
     {
-      char addr_str[18] = { 0 };
-      // Adress to String
-      addr_to_str(adv_report->peer_addr, addr_str);      
-      Serial.printf(">> NRF Detected! Addr: %s, Topic: %s\n", addr_str, name_buffer);
+      // On fait une String depuis le tableau de char qu'est l'adresse Mac
+      std::string addr_key(peer_addr_str);
+      // Extraire le topic (+JAVA , -NODE , etc.) des 7 derniers caractères du nom, en String
+      std::string topic_key(name_buffer + 7);
+      
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+      Serial.printf(">> NRF Detected! Addr: %s, Topic: %s\n", addr_key.c_str(), topic_key.c_str());
+#endif
+
+      // On met à jour les peers
+      update_peers(addr_key, topic_key);
     }
   }
 }

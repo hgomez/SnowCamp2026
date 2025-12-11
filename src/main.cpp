@@ -10,6 +10,9 @@ typedef volatile uint32_t REG32;
 // Last Scan Restart time
 unsigned long last_scan_restart_time = 0;
 
+// Last cleanup time
+unsigned long last_cleanup_time = 0;
+
 //
 // In BLE, only 30 bytes are allowed in headers and BlueFruit allow only 14 characters in name
 // 
@@ -201,4 +204,12 @@ void loop() {
             Bluefruit.Scanner.start(0);
         }
     }  
+
+  if (current_time >= (last_cleanup_time + CLEANUP_INTERVAL_MS)) {
+      
+      cleanup_peers();
+      print_peers_stats();
+
+      last_cleanup_time += CLEANUP_INTERVAL_MS;
+  }    
 }
