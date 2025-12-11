@@ -35,11 +35,15 @@ void update_peers(std::string addr, std::string topic)
 
       if (inserted) {
           // Le topic est nouveau pour cette carte -> Mettre à jour les statistiques globales
+#if LOG_LEVEL >= LOG_LEVEL_INFO
           Serial.printf(">> NRF Detected! Addr: %s, NEW Topic added: %s\n", addr.c_str(), topic.c_str());
+#endif
           topicCounts[topic]++;
       } else {
           // 
+#if LOG_LEVEL >= LOG_LEVEL_INFO
           Serial.printf(">> NRF Detected! Topic %s already known for %s\n", topic.c_str(), addr.c_str());
+#endif          
       }
 }
 
@@ -96,6 +100,8 @@ void cleanup_peers()
  */
 void print_peers_stats() {
 
+#if LOG_LEVEL >= LOG_LEVEL_INFO
+
       // Afficher l'état actuel des topics
       Serial.println("\n--- TOPIC STATS ---");
       for (auto const& [topic, count] : topicCounts) {
@@ -109,4 +115,7 @@ void print_peers_stats() {
       for (auto const& [addr, info] : detectedCards) {
           Serial.printf("Card: %s | LastSeen: %lu | Topics: %zu\n", info.addr.c_str(), info.lastSeen, info.topics.size());
       }
+
+#endif
+      
 }
