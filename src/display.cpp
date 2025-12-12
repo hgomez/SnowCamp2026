@@ -41,11 +41,11 @@ void init_leds() {
     pinMode(D8,OUTPUT);
     pinMode(LED_BUILTIN, OUTPUT); 
 
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 3; i++) {
         all_leds_off();
-        delay(500);
+        delay(250);
         all_leds_on();
-        delay(500);
+        delay(250);
     }
 }
 

@@ -73,3 +73,24 @@ size_t get_max_allocatable() {
   }
   return 0;
 }
+
+/**
+ * Convertit le temps en millisecondes en une chaîne de format HH:MM:SS
+ * @param ms Temps en millisecondes (millis())
+ * @param buffer Pointeur vers le tableau de caractères pour stocker le résultat (doit être au moins 9 octets)
+ * @eturn buffer Pointeur vers le tableau de caractères
+ */
+char * ms_to_hms(unsigned long ms, char* buffer) {
+    // 1. Conversion en secondes
+    unsigned long totalSeconds = ms / 1000;
+    
+    // 2. Calcul des unités
+    unsigned long hours   = totalSeconds / 3600;
+    unsigned long minutes = (totalSeconds % 3600) / 60;
+    unsigned long seconds = totalSeconds % 60;
+
+    // 3. Formatage de la chaîne (HH:MM:SS)
+    // Le format "%02lu" garantit deux chiffres avec zéro initial si nécessaire
+    sprintf(buffer, "%02lu:%02lu:%02lu", hours, minutes, seconds);
+    return (buffer);
+}

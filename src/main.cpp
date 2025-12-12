@@ -105,7 +105,9 @@ boolean is_detractor(const char * topic) {
  */
 void next_topic() {
     
-  Serial.printf("current topic #%d\n", topics_index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+  logger("Index de diffusion #%d\n", topics_index);
+#endif
 
   // Increment topic index
   topics_index++; 
@@ -115,10 +117,16 @@ void next_topic() {
     topics_index = 0;
   }
 
-  Serial.printf("next topic #%d\n", topics_index);
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+  logger("Nouvel index de diffusion #%d\n", topics_index);
+#endif
 }
 
-
+/***
+ * Construit le nom de diffusion sur 14 caractères, on ne peut pas plus large
+ * 14 c'est 3 + 4 + 7 soit :
+ * M&GAAAASSSSSSS où AAAA sont les 16bits bas de l'adresse Bluetooth et SSSSSSS le sujet (7 caractères max)
+ */
 char * build_advising_name(const char * lesujet) {
   sprintf(&ble_name[0],"M&G%04lX%.7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
   return &ble_name[0];
@@ -149,7 +157,13 @@ void setup() {
           blue_addr.addr[2], blue_addr.addr[1], blue_addr.addr[0]);
 
 
-  Serial.printf("Bluetooth adress %s\n", blue_addr_str);
+  logger("[setup] Mon adresse Bluetooth %s\n", blue_addr_str);
+  logger("[setup] Mes sujets : ");
+
+  for (int i = 0; i < NB_TOPICS; i++)
+    Serial.printf("%s ", topics[i]);
+
+  Serial.println();
 
   // Set Emission Power to be received
   Bluefruit.setTxPower(4);
@@ -158,7 +172,7 @@ void setup() {
   build_advising_name(topics[topics_index]);
 
   // Get topic and advising name
-  Serial.printf("Topic '%s' and Bluetooth Advising '%s'\n", topics[topics_index], ble_name);
+  logger("[setup] Diffusion du Topic '%s' avec comme nom de diffusion Bluetooth '%s'\n", topics[topics_index], ble_name);
 
   // Set name
   Bluefruit.setName(ble_name);
@@ -182,8 +196,6 @@ void loop() {
   // Vérifie si l'intervalle de temps est écoulé
   if (current_time > (last_update_time + ADVERTISING_TOPIC_DURATION_MS)) {
     
-    Serial.printf("\nMy Bluetooth address %s at %ld\n", blue_addr_str, current_time);
-
     // Find next topic
     next_topic();
 
@@ -191,7 +203,7 @@ void loop() {
     build_advising_name(topics[topics_index]);
 
     // Get topic and advertising name
-    Serial.printf("Topic '%s' and Bluetooth Advising '%s'\n", topics[topics_index], ble_name);
+    logger("[loop] Diffusion du sujet '%s' et message d'annonce Bluetooth '%s'\n", topics[topics_index], ble_name);
 
     // Stop advertising
     Bluefruit.Advertising.stop();
@@ -211,7 +223,7 @@ void loop() {
 
   if (current_time >= (last_scan_restart_time + SCAN_RESTART_INTERVAL_MS)) {
         
-        Serial.printf("\n[Scan Restart] Nettoyage du cache at %ld\n", current_time);
+        logger("[loop] Redémarrage du scanner et nettoyage de son cache\n");
         
         // Mettre à jour le temps de redémarrage
         last_scan_restart_time = current_time;
@@ -231,7 +243,7 @@ void loop() {
       last_cleanup_time += CLEANUP_INTERVAL_MS;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-  Serial.printf("Estimation mémoire libre %d - max disponible initialement %d\n", get_free_ram(), max_allocatable_memory);  
+  logger("[loop] Estimation mémoire libre %d, maximum disponible initialement %d\n", get_free_ram(), max_allocatable_memory);  
 #endif
 
   }    

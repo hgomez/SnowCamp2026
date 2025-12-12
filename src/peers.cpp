@@ -24,7 +24,7 @@ void update_peers(std::string addr, std::string topic)
     if ((! is_buddy(topic.c_str())) && (! is_detractor(topic.c_str()))) {
 
         #if LOG_LEVEL >= LOG_LEVEL_INFO
-            Serial.printf(">> Topic '%s' is neither buddy nor detractor, discarding\n", topic.c_str());
+            logger("[update_peers] >> Le sujet '%s' n'est pas dans ma liste aime/aime pas, on ne garde pas\n", topic.c_str());
         #endif
 
         return;
@@ -46,13 +46,13 @@ void update_peers(std::string addr, std::string topic)
       if (inserted) {
           // Le topic est nouveau pour cette carte -> Mettre à jour les statistiques globales
 #if LOG_LEVEL >= LOG_LEVEL_INFO
-          Serial.printf(">> NRF Detected! Addr: %s, NEW Topic added: '%s'\n", addr.c_str(), topic.c_str());
+          logger("[update_peers] >> M&G dectecté à l'adresse Bluetooth: %s, Nouveau sujet ajouté: '%s'\n", addr.c_str(), topic.c_str());
 #endif
           topicCounts[topic]++;
       } else {
           // 
 #if LOG_LEVEL >= LOG_LEVEL_INFO
-          Serial.printf(">> NRF Detected! Topic '%s' already known for %s\n", topic.c_str(), addr.c_str());
+          logger("[update_peers] >> M&G dectecté, le sujet '%s' est déjà connu pour adresse Bluetooth %s\n", topic.c_str(), addr.c_str());
 #endif          
       }
 }
@@ -85,7 +85,7 @@ void cleanup_peers()
     for (const std::string& addr : addresses_to_remove) 
     {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Serial.printf("[CLEANUP] Removing expired card: %s\n", addr.c_str());
+        logger("[cleanup_peers] Retrait de la carte expirée avec l'adresse Bluetooth %s\n", addr.c_str());
 #endif
         detectedCards.erase(addr);
     }
@@ -99,7 +99,7 @@ void cleanup_peers()
     }
     for (const std::string& topic : topics_to_remove) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Serial.printf("[CLEANUP] Removing empty topic: '%s'\n", topic.c_str());
+        logger("[cleanup_peers] Retrait d'un sujet vide '%s'\n", topic.c_str());
 #endif
         topicCounts.erase(topic);
     }
@@ -110,20 +110,22 @@ void cleanup_peers()
  */
 void print_peers_stats() {
 
+    char lastseenstr[10];
+
 #if LOG_LEVEL >= LOG_LEVEL_INFO
 
       // Afficher l'état actuel des topics
-      Serial.println("\n--- TOPIC STATS ---");
+      logger("[print_peers_stats] --- TOPIC STATS ---\n");
       for (auto const& [topic, count] : topicCounts) {
           if (count > 0) { // N'afficher que les topics actifs
-            Serial.printf("Topic: '%s' | Count: %d\n", topic.c_str(), count);
+            logger("[print_peers_stats] Sujet: '%s' | Compteur: %d\n", topic.c_str(), count);
           }
       }
       
       // Afficher l'état actuel des cartes vues
-      Serial.println("--- CARDS SEEN ---");
+      logger("[print_peers_stats]--- CARDS SEEN ---\n");
       for (auto const& [addr, info] : detectedCards) {
-          Serial.printf("Card: %s | LastSeen: %lu | Topics: %u\n", info.addr.c_str(), info.lastSeen, info.topics.size());
+          logger("[print_peers_stats] Carte: %s | Vu en dernier: %s | Topics: %u\n", info.addr.c_str(), ms_to_hms(info.lastSeen, lastseenstr), info.topics.size());
       }
 
 #endif

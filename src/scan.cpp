@@ -12,7 +12,7 @@
 void scan_callback(ble_gap_evt_adv_report_t* adv_report)
 {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-  Serial.println("Scan Callback");
+  logger("[scan_callback] Scan Callback invoqué\n");
 #endif
 
   char peer_addr_str[18] = { 0 };
@@ -23,8 +23,8 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
   char direct_addr_str[18] = { 0 };
   addr_to_str(adv_report->direct_addr, direct_addr_str);
   
-  Serial.printf("\n--- Report Received ---\n");
-  Serial.printf("Peer Addr: %s | Direct Addr: %s | RSSI: %d dBm | Type: 0x%02X\n", 
+  logger("--- Report Received ---\n");
+  logger("Peer Addr: %s | Direct Addr: %s | RSSI: %d dBm | Type: 0x%02X\n", 
                   peer_addr_str, 
                   direct_addr_str, 
                   adv_report->rssi, 
@@ -58,7 +58,7 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
       circle_one_led(50);      
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-      Serial.printf(">> NRF Detected! Addr: %s, Topic: '%s'\n", addr_key.c_str(), topic_key.c_str());
+      logger("[scan_callback] >> M&G Détecté à l'adresse %s, sujet '%s'\n", addr_key.c_str(), topic_key.c_str());
 #endif
 
       // On met à jour les peers

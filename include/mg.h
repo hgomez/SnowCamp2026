@@ -39,14 +39,26 @@
 extern void start_advertising(void);
 #endif
 
+#ifndef __DISPLAY_CPP_
+extern void init_leds(void);
+extern void circle_one_led(int time);
+extern void update_status_led(void);
+extern void update_health_led(void);
+#endif
+
+#ifndef __LOGGER_CPP_
+extern void logger_impl(const char *fmt, ...);
+
+// Définition de la macro pour simplifier l'appel
+// '##__VA_ARGS__' gère le cas où l'utilisateur n'envoie pas d'arguments variables.
+#define logger(format, ...) logger_impl(format, ##__VA_ARGS__)
+
+#endif
+
 #ifndef __MAIN_CPP__
 extern unsigned int topics_index;
 extern boolean is_buddy(const char *);
 extern boolean is_detractor(const char *);
-#endif
-
-#ifndef __SCAN_CPP__
-extern void start_scanner(void);
 #endif
 
 #ifndef __PEERS_CPP__
@@ -55,19 +67,14 @@ extern void cleanup_peers(void);
 extern void print_peers_stats(void);
 #endif
 
+#ifndef __SCAN_CPP__
+extern void start_scanner(void);
+#endif
+
 #ifndef __UTILS_CPP__
 extern void addr_to_str(const ble_gap_addr_t& addr, char* str);
 extern void print_adv_data(const uint8_t* data, uint8_t len);
 extern size_t get_free_ram(void);
 extern size_t get_max_allocatable(void);
+extern char * ms_to_hms(unsigned long ms, char* buffer);
 #endif
-
-#ifndef __DISPLAY_CPP_
-extern void init_leds(void);
-extern void circle_one_led(int time);
-extern void update_status_led(void);
-extern void update_health_led(void);
-#endif
-
-
-#include <malloc.h> // Nécessaire pour mallinfo
