@@ -20,6 +20,16 @@ std::unordered_map<std::string, int> topicCounts;
 */
 void update_peers(std::string addr, std::string topic) 
 {
+    // Si le topic ne correspond pas à un des notres, fan ou detracteur, on ne le retient pas
+    if ((! is_buddy(topic.c_str())) && (! is_detractor(topic.c_str()))) {
+
+        #if LOG_LEVEL >= LOG_LEVEL_INFO
+            Serial.printf(">> Topic '%s' is neither buddy nor detractor, discarding\n", topic.c_str());
+        #endif
+
+        return;
+    }
+
 // 1. S'assurer que l'entrée existe
       if (detectedCards.count(addr) == 0) {
           CardInfo info;
@@ -36,13 +46,13 @@ void update_peers(std::string addr, std::string topic)
       if (inserted) {
           // Le topic est nouveau pour cette carte -> Mettre à jour les statistiques globales
 #if LOG_LEVEL >= LOG_LEVEL_INFO
-          Serial.printf(">> NRF Detected! Addr: %s, NEW Topic added: %s\n", addr.c_str(), topic.c_str());
+          Serial.printf(">> NRF Detected! Addr: %s, NEW Topic added: '%s'\n", addr.c_str(), topic.c_str());
 #endif
           topicCounts[topic]++;
       } else {
           // 
 #if LOG_LEVEL >= LOG_LEVEL_INFO
-          Serial.printf(">> NRF Detected! Topic %s already known for %s\n", topic.c_str(), addr.c_str());
+          Serial.printf(">> NRF Detected! Topic '%s' already known for %s\n", topic.c_str(), addr.c_str());
 #endif          
       }
 }
@@ -89,7 +99,7 @@ void cleanup_peers()
     }
     for (const std::string& topic : topics_to_remove) {
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        Serial.printf("[CLEANUP] Removing empty topic: %s\n", topic.c_str());
+        Serial.printf("[CLEANUP] Removing empty topic: '%s'\n", topic.c_str());
 #endif
         topicCounts.erase(topic);
     }
@@ -106,7 +116,7 @@ void print_peers_stats() {
       Serial.println("\n--- TOPIC STATS ---");
       for (auto const& [topic, count] : topicCounts) {
           if (count > 0) { // N'afficher que les topics actifs
-            Serial.printf("Topic: %s | Count: %d\n", topic.c_str(), count);
+            Serial.printf("Topic: '%s' | Count: %d\n", topic.c_str(), count);
           }
       }
       

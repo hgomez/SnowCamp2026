@@ -37,7 +37,10 @@ unsigned long last_cleanup_time = 0;
 char ble_name[15];
 
 // My very own topics
-const char *topics[] = { "+JAVA ", "+6502" , "-Node ", "-Z80", "-K8S", "+DEVOPS" };
+const char *topics[] = { "+JAVA", "+6502" , "+DEVOPS", "-Node", "-REACT", "-K8S" };
+
+// Compute array size
+const unsigned int NB_TOPICS = sizeof(topics) / sizeof(topics[0]);
 
 // Our topic index
 unsigned int topics_index = 0;
@@ -55,13 +58,53 @@ char blue_addr_str[18];
 size_t max_allocatable_memory;
 
 /***
+ * On cherche si le topic envoyé correspond à un buddy
+ * Un buddy met un + sur de nos +, exemple il envoie +JAVA et on a mis +JAVA
+ * Un buddy met un - sur de nos -, exemple il envoie -NODE et on a mis -NODE
+ * On doit avoir une correspondance sur les chaines
+ */
+boolean is_buddy(const char * topic) {
+
+  for (unsigned int i = 0; i < NB_TOPICS; i++) {
+    // topic correspondant, signe et nom ?
+    if (strcasecmp(topics[i], topic) == 0)
+      return (true);
+  }
+  
+  return (false);
+}
+
+/***
+ * On cherche si le topic envoyé correspond à un detractor
+ * Un detractor met un + sur de nos -, exemple il envoie +NODE et on a mis -NODE
+ * Un detractor met un - sur de nos +, exemple il envoie -JAVA et on a mis °JAVA
+* On doit avoir une correspondance sur les noms et une différence sur les signes
+*/
+boolean is_detractor(const char * topic) {
+
+  for (unsigned int i = 0; i < NB_TOPICS; i++) {
+
+    // nom de topic correspondant ?
+    if (strcasecmp(&topics[i][1], &topic[1]) == 0) {
+
+      // j'ai mis +, il a mis -
+      if (topics[i][0] == '+' && topic[0] == '-')
+        return (true);
+
+      // j'ai mis -, il a mis +
+      if (topics[i][0] == '-' && topic[0] == '+')
+        return (true);
+    }
+  }
+
+  return (false);
+}
+
+/***
  * Move to next topic, increment topics_index variables and wrap around
  */
 void next_topic() {
-  
-  // Compute array size
-  const unsigned int NB_TOPICS = sizeof(topics) / sizeof(topics[0]);
-  
+    
   Serial.printf("current topic #%d\n", topics_index);
 
   // Increment topic index
@@ -77,7 +120,7 @@ void next_topic() {
 
 
 char * build_advising_name(const char * lesujet) {
-  sprintf(&ble_name[0],"M&G%04lX%-7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
+  sprintf(&ble_name[0],"M&G%04lX%.7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
   return &ble_name[0];
 }
 

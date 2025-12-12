@@ -41,6 +41,8 @@ extern void start_advertising(void);
 
 #ifndef __MAIN_CPP__
 extern unsigned int topics_index;
+extern boolean is_buddy(const char *);
+extern boolean is_detractor(const char *);
 #endif
 
 #ifndef __SCAN_CPP__

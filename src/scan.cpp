@@ -55,7 +55,7 @@ void scan_callback(ble_gap_evt_adv_report_t* adv_report)
       std::string topic_key(name_buffer + 7);
       
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-      Serial.printf(">> NRF Detected! Addr: %s, Topic: %s\n", addr_key.c_str(), topic_key.c_str());
+      Serial.printf(">> NRF Detected! Addr: %s, Topic: '%s'\n", addr_key.c_str(), topic_key.c_str());
 #endif
 
       // On met à jour les peers
