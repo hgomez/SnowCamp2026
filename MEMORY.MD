@@ -1,6 +1,7 @@
-* L'organisation mémoire du NRF52840 
+# L'organisation mémoire du NRF52840 
 
-Pour rappel 256Ko de RAM, on utilise Arduino qui s'appuye lui même sous FreeRTOS
+Pour rappel la carte Seed Studio a 256Ko de RAM et 1Mo de Flasg.
+On utilise le framework Arduino qui s'appuie lui même sous FreeRTOS
 
 Vous avez :
 
