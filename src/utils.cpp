@@ -20,3 +20,32 @@ void print_adv_data(const uint8_t* data, uint8_t len) {
     }
     Serial.println();
 }
+
+
+#ifdef __arm__
+// Variables externes pour le suivi du tas (Heap) par le compilateur GCC/newlib
+extern "C" char *sbrk(int i);
+#else
+// Définition de sbrk factice pour les environnements de compilation non ARM
+char *sbrk(int incr) {
+  static char *heap_ptr = NULL;
+  char *prev_heap_ptr;
+  if (heap_ptr == NULL) {
+    heap_ptr = (char *)malloc(1024); // Simuler une petite zone
+  }
+  prev_heap_ptr = heap_ptr;
+  heap_ptr += incr;
+  return prev_heap_ptr;
+}
+#endif
+
+
+// Adresse de fin physique de la RAM pour le NRF52840 (256KB)
+// 0x20000000 (Base) + 0x40000 (256KB) = 0x20040000
+const uint32_t RAM_END = 0x20040000; 
+
+int get_free_ram() {
+  char *heap_end = sbrk(0);
+  // On calcule l'espace entre la fin actuelle du tas et la fin physique de la RAM
+  return (int)(RAM_END - (uint32_t)heap_end);
+}

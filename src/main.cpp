@@ -211,5 +211,11 @@ void loop() {
       print_peers_stats();
 
       last_cleanup_time += CLEANUP_INTERVAL_MS;
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+  Serial.printf("\nEstimation mémoire libre %d\n", get_free_ram());  
+#endif
+
   }    
+
 }

@@ -56,4 +56,7 @@ extern void print_peers_stats(void);
 #ifndef __UTILS_CPP__
 extern void addr_to_str(const ble_gap_addr_t& addr, char* str);
 extern void print_adv_data(const uint8_t* data, uint8_t len);
+extern int get_free_ram(void);
 #endif
+
+#include <malloc.h> // Nécessaire pour mallinfo
