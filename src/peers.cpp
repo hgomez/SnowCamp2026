@@ -123,7 +123,7 @@ void print_peers_stats() {
       // Afficher l'état actuel des cartes vues
       Serial.println("--- CARDS SEEN ---");
       for (auto const& [addr, info] : detectedCards) {
-          Serial.printf("Card: %s | LastSeen: %lu | Topics: %zu\n", info.addr.c_str(), info.lastSeen, info.topics.size());
+          Serial.printf("Card: %s | LastSeen: %lu | Topics: %u\n", info.addr.c_str(), info.lastSeen, info.topics.size());
       }
 
 #endif
