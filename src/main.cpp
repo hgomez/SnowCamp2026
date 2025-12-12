@@ -51,6 +51,9 @@ ble_gap_addr_t blue_addr;
 // Bluetooth address as string
 char blue_addr_str[18]; 
 
+// mémoire allouable maximum
+size_t max_allocatable_memory;
+
 /***
  * Move to next topic, increment topics_index variables and wrap around
  */
@@ -80,6 +83,9 @@ char * build_advising_name(const char * lesujet) {
 
 
 void setup() {
+  // On commence par calculer la taille maximum allouable via malloc
+  max_allocatable_memory = get_max_allocatable();
+
   // initialize digital pin D3-D8 and the built-in LED as an output.
   pinMode(D3,OUTPUT);
   pinMode(D4,OUTPUT);
@@ -213,9 +219,8 @@ void loop() {
       last_cleanup_time += CLEANUP_INTERVAL_MS;
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
-  Serial.printf("\nEstimation mémoire libre %d\n", get_free_ram());  
+  Serial.printf("Estimation mémoire libre %d - max disponible initialement %d\n", get_free_ram(), max_allocatable_memory);  
 #endif
 
   }    
-
 }

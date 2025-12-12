@@ -39,13 +39,37 @@ char *sbrk(int incr) {
 }
 #endif
 
+/***
+ */
 
 // Adresse de fin physique de la RAM pour le NRF52840 (256KB)
 // 0x20000000 (Base) + 0x40000 (256KB) = 0x20040000
 const uint32_t RAM_END = 0x20040000; 
 
-int get_free_ram() {
+size_t get_free_ram() {
   char *heap_end = sbrk(0);
   // On calcule l'espace entre la fin actuelle du tas et la fin physique de la RAM
-  return (int)(RAM_END - (uint32_t)heap_end);
+  return (size_t)(RAM_END - (uint32_t)heap_end);
+}
+
+/***
+ * Calcul de la plus grande mémoire allouable
+ */
+size_t get_max_allocatable() {
+
+  size_t size = 150000; // On commence gros (150ko)
+  size_t step = 10000;  // Pas de 10ko
+  void* ptr = NULL;
+
+  // On essaie de réduire la taille tant qu'on n'arrive pas à allouer
+  while (size > 0) {
+    ptr = malloc(size);
+    if (ptr != NULL) {
+      free(ptr); // On libère tout de suite !
+      return size;
+    }
+    size -= step;
+    if (size < step) step = 100; // Affinage pour la fin
+  }
+  return 0;
 }
