@@ -45,6 +45,13 @@ void update_led_counts(const std::unordered_map<std::string, int>& ptopicCounts)
         } else {
             state.count = 0;
         }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+            // Log ici : une seule fois par cycle de mise à jour
+            logger("[update_led_counts] topic: %s | count: %d | pin: %d\n", 
+                name.c_str(), state.count, state.pin);
+#endif        
+
     }
 }
 
@@ -57,13 +64,6 @@ void refresh_led_effects() {
             continue;
         }
 
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        logger("[refresh_led_effects] name %s pin %d count %d\n", 
-            name.c_str(), 
-            state.pin, 
-            state.count);
-#endif
-
         // --- Calcul de la Pulsation PWM ---
         // Fréquence f = 1.0 + (n * 0.5) Hz (ajustable selon tes préférences)
         float frequency = 0.5 + (state.count * 0.5); 
@@ -73,8 +73,4 @@ void refresh_led_effects() {
         
         analogWrite(state.pin, dutyCycle);
     }
-
-#if LOG_LEVEL >= LOG_LEVEL_DEBUG
-        logger("[refresh_led_effects] terminé\n");
-#endif
 }
