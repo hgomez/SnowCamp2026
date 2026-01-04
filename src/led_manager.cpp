@@ -59,7 +59,7 @@ void refresh_led_effects() {
 
 #if LOG_LEVEL >= LOG_LEVEL_DEBUG
         logger("[refresh_led_effects] name %s pin %d count %d\n", 
-            name, 
+            name.c_str(), 
             state.pin, 
             state.count);
 #endif
