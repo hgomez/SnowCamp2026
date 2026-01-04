@@ -73,4 +73,8 @@ void refresh_led_effects() {
         
         analogWrite(state.pin, dutyCycle);
     }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        logger("[refresh_led_effects] terminé\n");
+#endif
 }
