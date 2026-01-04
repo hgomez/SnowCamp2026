@@ -39,6 +39,9 @@ char ble_name[15];
 // My very own topics
 const char *topics[] = { "+JAVA", "+6502" , "+DEVOPS", "-Node", "-REACT", "-K8S" };
 
+// Maximum 6 topics car 6 LEDs.
+const unsigned int NUM_TOPICS = 6;
+
 // Compute array size
 const unsigned int NB_TOPICS = sizeof(topics) / sizeof(topics[0]);
 
@@ -161,7 +164,7 @@ void setup() {
   logger("[setup] Mon adresse Bluetooth %s\n", blue_addr_str);
   logger("[setup] Mes sujets : ");
 
-  for (int i = 0; i < NB_TOPICS; i++)
+  for (unsigned int i = 0; i < NB_TOPICS; i++)
     Serial.printf("%s ", topics[i]);
 
   Serial.println();
@@ -187,6 +190,7 @@ void setup() {
 
 void loop() {
 
+  refresh_led_effects();
   update_status_led();
 
   if (Bluefruit.Scanner.isRunning())
@@ -240,6 +244,10 @@ void loop() {
       
       cleanup_peers();
       print_peers_stats();
+
+      // Mise à jour physique des LEDs
+      update_led_counts(topicCounts);
+      logger("LEDs updated based on current social context.\n");
 
       last_cleanup_time += CLEANUP_INTERVAL_MS;
 

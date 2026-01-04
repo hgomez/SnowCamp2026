@@ -1,41 +1,60 @@
-#include "led_manager.h"
+#define __LED_MANAGER_CPP__
+
+#include "mg.h"
+#include <math.h>
+
+// Tableau des pins dans l'ordre (D3-D5 pour +, D6-D8 pour -)
+static const int LED_PINS[] = {D3, D4, D5, D6, D7, D8};
+
+// Structure interne pour stocker l'état
+struct TopicState {
+    int pin;
+    int count;
+};
+
+// Map dynamique : Clé = Nom du topic, Valeur = Pin + Compteur
+static std::unordered_map<std::string, TopicState> ledMap;
 
 void init_social_leds() {
-    pinMode(LED_G1, OUTPUT); pinMode(LED_G2, OUTPUT); pinMode(LED_G3, OUTPUT);
-    pinMode(LED_R1, OUTPUT); pinMode(LED_R2, OUTPUT); pinMode(LED_R3, OUTPUT);
-    clear_social_leds();
+    ledMap.clear();
+    
+    // Construction dynamique de la map basée sur le tableau 'topics'
+    for (unsigned int i = 0; i < NUM_TOPICS; i++) {
+        pinMode(LED_PINS[i], OUTPUT);
+        digitalWrite(LED_PINS[i], LOW);
+        
+        // On associe le nom du topic au pin correspondant par l'index
+        ledMap[topics[i]] = { LED_PINS[i], 0 };
+    }
 }
 
-void clear_social_leds() {
-    digitalWrite(LED_G1, LOW); digitalWrite(LED_G2, LOW); digitalWrite(LED_G3, LOW);
-    digitalWrite(LED_R1, LOW); digitalWrite(LED_R2, LOW); digitalWrite(LED_R3, LOW);
-}
-
-void update_social_leds(const std::unordered_map<std::string, int>& topicCounts) {
-    int score_plus = 0;
-    int score_moins = 0;
-
-    // Analyse des topics détectés
-    for (auto const& [topic, count] : topicCounts) {
-        if (count > 0) {
-            if (topic[0] == '+') {
-                score_plus += count;
-            } else if (topic[0] == '-') {
-                score_moins += count;
-            }
+void update_led_counts(const std::unordered_map<std::string, int>& ptopicCounts) {
+    // On met à jour les compteurs internes de notre ledMap
+    for (auto& [name, state] : ledMap) {
+        if (ptopicCounts.count(name)) {
+            state.count = ptopicCounts.at(name);
+        } else {
+            state.count = 0;
         }
     }
+}
 
-    // --- Logique d'affichage ---
-    // On allume les LEDs progressivement selon le score (1, 2, ou 3+)
-    
-    // VERTES (J'aime)
-    digitalWrite(LED_G1, (score_plus >= 1) ? HIGH : LOW);
-    digitalWrite(LED_G2, (score_plus >= 2) ? HIGH : LOW);
-    digitalWrite(LED_G3, (score_plus >= 3) ? HIGH : LOW);
+void refresh_led_effects() {
+    unsigned long now = millis();
 
-    // ROUGES (J'aime pas)
-    digitalWrite(LED_R1, (score_moins >= 1) ? HIGH : LOW);
-    digitalWrite(LED_R2, (score_moins >= 2) ? HIGH : LOW);
-    digitalWrite(LED_R3, (score_moins >= 3) ? HIGH : LOW);
+    for (auto const& [name, state] : ledMap) {
+        if (state.count <= 0) {
+            analogWrite(state.pin, 0);
+            continue;
+        }
+
+        // --- Calcul de la Pulsation PWM ---
+        // Fréquence f = 1.0 + (n * 0.5) Hz (ajustable selon tes préférences)
+        float frequency = 0.5 + (state.count * 0.5); 
+        float phase = (now / 1000.0) * 2.0 * M_PI * frequency;
+        
+        int dutyCycle = (int)((sin(phase) * 127.5) + 127.5);
+        
+        analogWrite(state.pin, dutyCycle);
+    }
 }

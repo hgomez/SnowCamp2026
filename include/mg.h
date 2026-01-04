@@ -57,7 +57,10 @@ extern void logger_impl(const char *fmt, ...);
 
 #endif
 
-#ifndef __MAIN_CPP__
+#ifndef __MAIN_CPP_
+extern const char *topics[];
+extern const unsigned int NUM_TOPICS;
+
 extern unsigned int topics_index;
 extern boolean is_buddy(const char *);
 extern boolean is_detractor(const char *);
@@ -67,6 +70,9 @@ extern boolean is_detractor(const char *);
 extern void update_peers(std::string addr, std::string topic);
 extern void cleanup_peers(void);
 extern void print_peers_stats(void);
+
+extern std::unordered_map<std::string, int> topicCounts;
+
 #endif
 
 #ifndef __SCAN_CPP__
