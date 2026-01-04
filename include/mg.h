@@ -5,6 +5,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
+#include "led_manager.h"
+
 #define LOG_LEVEL_FATAL 1
 #define LOG_LEVEL_ERROR 2
 #define LOG_LEVEL_WARN  3
@@ -78,3 +80,4 @@ extern size_t get_free_ram(void);
 extern size_t get_max_allocatable(void);
 extern char * ms_to_hms(unsigned long ms, char* buffer);
 #endif
+

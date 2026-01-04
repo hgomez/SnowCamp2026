@@ -138,6 +138,7 @@ void setup() {
   max_allocatable_memory = get_max_allocatable();
 
   init_leds();
+  init_social_leds(); // Initialisation des pins D3-D8
 
   // Init serial communication for debugging
   Serial.begin(115200);
