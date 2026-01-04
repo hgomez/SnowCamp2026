@@ -25,6 +25,15 @@ void init_social_leds() {
         
         // On associe le nom du topic au pin correspondant par l'index
         ledMap[topics[i]] = { LED_PINS[i], 0 };
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        logger("[init_social_leds] topics %d topic %s pin %d count %d\n", 
+            i, 
+            topics[i], 
+            ledMap[topics[i]].pin, 
+            ledMap[topics[i]].count);
+#endif
+
     }
 }
 
@@ -47,6 +56,13 @@ void refresh_led_effects() {
             analogWrite(state.pin, 0);
             continue;
         }
+
+#if LOG_LEVEL >= LOG_LEVEL_DEBUG
+        logger("[refresh_led_effects] name %s pin %d count %d\n", 
+            name, 
+            state.pin, 
+            state.count);
+#endif
 
         // --- Calcul de la Pulsation PWM ---
         // Fréquence f = 1.0 + (n * 0.5) Hz (ajustable selon tes préférences)
