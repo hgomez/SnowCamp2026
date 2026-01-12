@@ -1,11 +1,5 @@
-#ifndef __ADVERTISE_CPP__
-
-extern void start_advertising(void);
-
-#endif
-
-// Emit mode in fast mode
-#define ADVERTISING_DURATION_FASTMODE 3
+// Adversiting Duration (in seconds)
+#define ADVERTISING_DURATION 1
 
 // Advertising topic duration in milliseconds
 // Receivers have cache so emit long enough, the Cache GATT (Generic Attribute Profile Cache)
@@ -13,3 +7,5 @@ extern void start_advertising(void);
 //
 #define ADVERTISING_TOPIC_DURATION_MS (35 * 1000)
 
+extern void start_advertising(void);
+extern void advertising_stop_callback(void);

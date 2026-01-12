@@ -2,10 +2,6 @@
 
 #include "mg.h"
 
-typedef volatile uint32_t REG32;
-
-#define pREG32 (REG32 *)
-#define MAC_ADDRESS_LOW   (*(pREG32 (0x100000a4)))
 
 // Last Scan Restart time
 unsigned long last_scan_restart_time = 0;
@@ -31,10 +27,6 @@ unsigned long last_cleanup_time = 0;
 // M&G1234-Z80 
 // M&G1234-K8S 
 // M&G1234+DEVOPS 
-
-// ble_name is a char array to hold Bluetooth name 
-// 14 chars and a trailing 0x00
-char ble_name[15];
 
 // My very own topics
 const char *topics[] = { "+JAVA", "+6502" , "+DEVOPS", "-Node", "-REACT", "-K8S" };
@@ -125,15 +117,6 @@ void next_topic() {
 #endif
 }
 
-/***
- * Construit le nom de diffusion sur 14 caractères, on ne peut pas plus large
- * 14 c'est 3 + 4 + 7 soit :
- * M&GAAAASSSSSSS où AAAA sont les 16bits bas de l'adresse Bluetooth et SSSSSSS le sujet (7 caractères max)
- */
-char * build_advising_name(const char * lesujet) {
-  sprintf(&ble_name[0],"M&G%04lX%.7s", (MAC_ADDRESS_LOW) & 0xFFFF, lesujet);
-  return &ble_name[0];
-}
 
 
 void setup() {
@@ -170,16 +153,7 @@ void setup() {
   Serial.println();
 
   // Set Emission Power to be received
-  Bluefruit.setTxPower(4);
-
-  // Build Advising name
-  build_advising_name(topics[topics_index]);
-
-  // Get topic and advising name
-  logger("[setup] Diffusion du Topic '%s' avec comme nom de diffusion Bluetooth '%s'\n", topics[topics_index], ble_name);
-
-  // Set name
-  Bluefruit.setName(ble_name);
+  Bluefruit.setTxPower(8);
 
   // Start advertising in Bluetooth
   start_advertising();
@@ -201,25 +175,6 @@ void loop() {
   // Vérifie si l'intervalle de temps est écoulé
   if (current_time > (last_update_time + ADVERTISING_TOPIC_DURATION_MS)) {
     
-    // Find next topic
-    next_topic();
-
-    // Build advertising name
-    build_advising_name(topics[topics_index]);
-
-    // Get topic and advertising name
-    logger("[loop] Diffusion du sujet '%s' et message d'annonce Bluetooth '%s'\n", topics[topics_index], ble_name);
-
-    // Stop advertising
-    Bluefruit.Advertising.stop();
-
-    // Set name
-    Bluefruit.setName(ble_name);
-
-    // Start advertising
-    // Bluefruit.Advertising.start();
-    start_advertising();
-
     // New time
     last_update_time = current_time;
   }
