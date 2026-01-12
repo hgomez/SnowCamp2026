@@ -3,8 +3,8 @@
 #include "mg.h"
 #include <math.h>
 
-// Tableau des pins dans l'ordre (D3-D5 pour +, D6-D8 pour -)
-static const int LED_PINS[] = {D3, D4, D5, D6, D7, D8};
+// Tableau des pins dans l'ordre (D3/D5/D7 pour +, D4/D6/D8 pour -)
+static const int LED_PINS[] = {D3, D5, D7, D4, D6, D8};
 
 // Structure interne pour stocker l'état
 struct TopicState {

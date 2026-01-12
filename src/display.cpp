@@ -30,25 +30,6 @@ void all_leds_on() {
   digitalWrite(D8, HIGH);    
 }
 
-void init_leds() {
-
-    // initialize digital pin D3-D8 and the built-in LED as an output.
-    pinMode(D3,OUTPUT);
-    pinMode(D4,OUTPUT);
-    pinMode(D5,OUTPUT);
-    pinMode(D6,OUTPUT);
-    pinMode(D7,OUTPUT);
-    pinMode(D8,OUTPUT);
-    pinMode(LED_BUILTIN, OUTPUT); 
-
-    for (int i = 0; i < 3; i++) {
-        all_leds_off();
-        delay(250);
-        all_leds_on();
-        delay(250);
-    }
-}
-
 
 void circle_one_led(int time) {
 
@@ -79,6 +60,28 @@ void circle_one_led(int time) {
 
     digitalWrite(D8, LOW);
 }
+
+void init_leds() {
+
+    // initialize digital pin D3-D8 and the built-in LED as an output.
+    pinMode(D3,OUTPUT);
+    pinMode(D4,OUTPUT);
+    pinMode(D5,OUTPUT);
+    pinMode(D6,OUTPUT);
+    pinMode(D7,OUTPUT);
+    pinMode(D8,OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT); 
+
+    for (int i = 0; i < 3; i++) {
+        all_leds_off();
+        delay(250);
+        all_leds_on();
+        delay(250);
+    }
+
+    // circle_one_led(2000);
+}
+
 
 void update_status_led() {
 
